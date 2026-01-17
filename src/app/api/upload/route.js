@@ -1,9 +1,9 @@
+// src/app/api/upload/route.js
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
-import path from 'path';
+import sharp from 'sharp'; // Pastikan sudah npm install sharp
 
-// 1. Konfigurasi Cloudinary
+// Konfigurasi Cloudinary
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -12,63 +12,44 @@ cloudinary.config({
 
 export async function POST(req) {
   try {
-    // Ambil data dari frontend (Sekarang terima ID & PIN juga)
     const body = await req.json();
-    const { image, sessionId, pin } = body; // <--- PERUBAHAN 1: Destructure data
-    
-    // Validasi kelengkapan data
+    const { image, sessionId, pin } = body;
+
+    // 1. Validasi: Pastikan data lengkap
     if (!image || !sessionId || !pin) {
-      throw new Error("Data tidak lengkap (Butuh Image, SessionID, dan PIN)");
+      return NextResponse.json({ error: "Data tidak lengkap (Butuh Image, ID, & PIN)" }, { status: 400 });
     }
 
-    // --- TAHAP A: IMAGE PROCESSING (LOKAL) ---
-    const inputBuffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ""), 'base64');
+    // 2. Proses Gambar dengan Sharp (Resize biar ringan & hemat kuota)
+    // Hapus prefix base64 jika ada
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, 'base64');
 
-    const processedBuffer = await sharp(inputBuffer)
-      .resize(1200, 1800)
-      .modulate({ 
-        brightness: 1.1, 
-        saturation: 1.1  
-      })
-      // Jika sudah ada frame.png, hapus komentar di bawah:
-      /*
-      .composite([{ 
-        input: path.join(process.cwd(), 'public/frame.png'), 
-        gravity: 'center' 
-      }])
-      */
-      .jpeg({ quality: 90 })
+    const processedBuffer = await sharp(buffer)
+      .resize(1200) // Resize lebar ke 1200px (cukup HD untuk HP)
+      .jpeg({ quality: 80 }) // Kompresi JPEG 80%
       .toBuffer();
 
-    // --- TAHAP B: UPLOAD KE CLOUDINARY DENGAN PIN ---
+    // Ubah balik ke base64 untuk upload
     const fileStr = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`;
 
+    // 3. Upload ke Cloudinary
+    // PENTING: Kita pasang 'tags' dan 'context' agar bisa dicari nanti di route album
     const uploadResponse = await cloudinary.uploader.upload(fileStr, {
-      folder: 'photobooth_private_itk', // <--- Ganti folder biar rapi
-      resource_type: 'image',
-      
-      // PERUBAHAN 2: Gunakan TAGS untuk mengelompokkan foto dalam satu sesi
-      tags: [`session_${sessionId}`], 
-      
-      // PERUBAHAN 3: Gunakan CONTEXT untuk menyimpan PIN secara tersembunyi
-      context: `access_pin=${pin}`,   
-      
-      eager: [{ width: 500, crop: "scale" }] 
+      folder: 'photobooth_gallery', // Nama folder di Cloudinary
+      tags: [`session_${sessionId}`], // TAG: Untuk mengelompokkan foto per sesi
+      context: `access_pin=${pin}`,    // CONTEXT: Untuk menyimpan PIN sebagai password
     });
 
-    // --- TAHAP C: SELESAI ---
-    console.log(`Upload Sukses ke Sesi ${sessionId}`);
+    console.log(`✅ Upload Sukses: Sesi ${sessionId}`);
     
     return NextResponse.json({ 
-      url: uploadResponse.secure_url,
-      original_filename: uploadResponse.original_filename
+      success: true,
+      url: uploadResponse.secure_url 
     });
 
   } catch (error) {
-    console.error("🔥 Upload Gagal:", error);
-    return NextResponse.json(
-      { error: error.message || 'Gagal memproses gambar' }, 
-      { status: 500 }
-    );
+    console.error("🔥 Upload Error:", error);
+    return NextResponse.json({ error: "Gagal Upload: " + error.message }, { status: 500 });
   }
 }
