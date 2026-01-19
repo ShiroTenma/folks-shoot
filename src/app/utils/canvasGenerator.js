@@ -3,19 +3,22 @@
 export const processFinalImage = async ({ 
     layout, photos, frame, stickers, brightness, saturation 
 }) => {
+    // 1. Tentukan Ukuran Canvas
+    // Single: 1200x1800 (Rasio 2:3)
+    // Strip: 600x1800 (Rasio 1:3)
     const width = layout === 'single' ? 1200 : 600;
     const height = 1800;
     
-    // Fungsi pembantu untuk menggambar layer dasar (Foto User)
-    // Ini dipakai 2 kali: untuk Raw dan untuk Final
+    // --- FUNGSI UTAMA MENGGAMBAR FOTO (BASE LAYER) ---
     const drawBaseLayer = async (ctx) => {
-        // 1. Background Putih
+        // A. Background Putih
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, width, height);
 
-        // 2. Filter Warna
+        // B. Set Filter Warna
         ctx.filter = `brightness(${brightness}) saturate(${saturation})`;
 
+        // Helper Load Image
         const loadImg = (src) => new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = "anonymous";
@@ -24,20 +27,57 @@ export const processFinalImage = async ({
             img.src = src;
         });
 
+        // --- LOGIKA SINGLE SHOT ---
         if (layout === 'single') {
             const img = await loadImg(photos[0]);
+            
+            // Hitung Scaling biar 'Cover' (Tidak Gepeng)
             const scale = Math.max(width / img.width, height / img.height);
             const x = (width / 2) - (img.width / 2) * scale;
             const y = (height / 2) - (img.height / 2) * scale;
+            
             ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-        } else {
-            const photoH = height / 3; 
+        } 
+        // --- LOGIKA STRIP SHOT (REVISI BIAR GAK STRETCH) ---
+        else {
+            const slotHeight = height / 3; // Tinggi per kotak (1800 / 3 = 600px)
+            const slotWidth = width;       // Lebar kotak (600px)
+
             for (let i = 0; i < photos.length; i++) {
                 const img = await loadImg(photos[i]);
-                ctx.drawImage(img, 0, i * photoH, width, photoH);
+                
+                // Koordinat Y awal untuk foto ke-i
+                const startY = i * slotHeight;
+
+                // 1. Hitung Rasio Scaling (Pilih yang paling besar agar menutupi area)
+                const scale = Math.max(slotWidth / img.width, slotHeight / img.height);
+                
+                // 2. Hitung Ukuran Baru setelah discaling
+                const dWidth = img.width * scale;
+                const dHeight = img.height * scale;
+
+                // 3. Hitung Posisi Tengah (Center Crop)
+                // (LebarSlot - LebarGambarBaru) / 2
+                const dx = (slotWidth - dWidth) / 2;
+                // (TinggiSlot - TinggiGambarBaru) / 2
+                const dy = (slotHeight - dHeight) / 2;
+
+                // 4. Gambar dengan Clipping (Agar tidak bocor ke kotak lain)
+                ctx.save(); // Simpan state canvas
+                
+                // Bikin area potong (hanya boleh gambar di kotak ini)
+                ctx.beginPath();
+                ctx.rect(0, startY, slotWidth, slotHeight);
+                ctx.clip();
+
+                // Gambar Foto (perhatikan offset Y ditambah startY)
+                ctx.drawImage(img, dx, startY + dy, dWidth, dHeight);
+                
+                ctx.restore(); // Kembalikan state canvas (hilangkan clip)
             }
         }
-        ctx.filter = 'none'; // Reset filter
+        
+        ctx.filter = 'none'; // Reset filter agar Frame & Sticker warnanya normal
     };
 
     // --- PROSES 1: GAMBAR RAW (Hanya Foto) ---
