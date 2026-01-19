@@ -1,131 +1,155 @@
 "use client";
-import React, { useState } from 'react';
-import { Shield, Key, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Trash2, Download, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
-export default function AdminDashboard() {
+export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [sessions, setSessions] = useState([]);
 
+  // Fungsi Login & Load Data
   const handleLogin = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setLoading(true);
-    setError("");
-
     try {
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
-
+      
       const data = await res.json();
-
       if (res.ok) {
+        setIsAuthenticated(true);
         setSessions(data.sessions);
-        setIsLoggedIn(true);
       } else {
-        setError(data.error);
+        alert("Password Salah!");
       }
     } catch (err) {
-      setError("Gagal connect ke server");
+      alert("Error connection");
     } finally {
       setLoading(false);
     }
   };
 
+  // Fungsi Hapus Sesi
+  const handleDelete = async (sessionId) => {
+    if (!confirm(`YAKIN HAPUS SESI ${sessionId}? Permanen!`)) return;
+
+    try {
+        const res = await fetch('/api/admin', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password, sessionId }),
+        });
+        if(res.ok) {
+            setSessions(prev => prev.filter(s => s.id !== sessionId));
+        } else {
+            alert("Gagal hapus");
+        }
+    } catch(e) { alert("Error koneksi"); }
+  };
+
   // --- TAMPILAN LOGIN ---
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4">
-        <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800 w-full max-w-sm text-center">
-          <Shield className="mx-auto text-red-500 mb-4" size={40} />
-          <h1 className="text-xl font-bold mb-4">Admin Access</h1>
-          <form onSubmit={handleLogin}>
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <form onSubmit={handleLogin} className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800 w-full max-w-sm">
+          <h1 className="text-white text-2xl font-bold mb-6 text-center">FOLKSHOOT ADMIN</h1>
+          <div className="relative mb-4">
+            <Lock className="absolute left-3 top-3 text-zinc-500" size={18} />
             <input 
               type="password" 
-              placeholder="Admin Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black border border-zinc-700 p-3 rounded-lg mb-4 text-center"
+              placeholder="Enter Admin Password"
+              className="w-full bg-black border border-zinc-700 text-white py-3 pl-10 pr-4 rounded-lg focus:outline-none focus:border-white transition"
             />
-            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-            <button className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg font-bold">
-              {loading ? "Checking..." : "Login"}
-            </button>
-          </form>
-        </div>
-      </main>
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-zinc-200 transition"
+          >
+            {loading ? "Checking..." : "Login Dashboard"}
+          </button>
+        </form>
+      </div>
     );
   }
 
   // --- TAMPILAN DASHBOARD ---
   return (
-    <main className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Shield className="text-red-500" /> Dashboard Admin
-            </h1>
-            <button onClick={() => window.location.reload()} className="bg-zinc-800 px-4 py-2 rounded">
-                Refresh Data
-            </button>
+    <div className="min-h-screen bg-black text-white p-6 md:p-10">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-10 border-b border-zinc-800 pb-6">
+            <div>
+                <h1 className="text-3xl font-bold">Session Manager</h1>
+                <p className="text-zinc-500 text-sm mt-1">Total Sessions: {sessions.length}</p>
+            </div>
+            <button onClick={() => window.location.reload()} className="bg-zinc-800 px-4 py-2 rounded-lg text-sm hover:bg-zinc-700">Refresh Data</button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sessions.length === 0 ? (
-                <p className="text-zinc-500">Belum ada sesi foto.</p>
-            ) : (
-                sessions.map((session) => (
-                    <div key={session.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-600 transition">
-                        
-                        {/* Header Kartu: Session ID */}
-                        <div className="bg-zinc-800 p-3 flex justify-between items-center">
-                            <span className="font-mono font-bold text-yellow-400">{session.id}</span>
-                            <span className="text-xs text-zinc-400">
-                                {new Date(session.date).toLocaleTimeString()}
-                            </span>
-                        </div>
-
-                        {/* Body Kartu: PIN & Foto */}
-                        <div className="p-4 flex gap-4">
-                            {/* Thumbnail Foto Pertama */}
-                            <div className="w-16 h-16 bg-black rounded-lg overflow-hidden flex-shrink-0">
-                                <img src={session.thumbnail} className="w-full h-full object-cover" />
-                            </div>
-                            
-                            {/* Info PIN */}
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Key size={14} className="text-zinc-500" />
-                                    <span className="text-zinc-400 text-xs">Access PIN:</span>
-                                </div>
-                                <div className="text-2xl font-bold tracking-widest text-white">
-                                    {session.pin}
-                                </div>
-                                <div className="text-xs text-zinc-500 mt-1">
-                                    Total {session.totalPhotos} Foto
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Footer: Tombol Aksi */}
-                        <div className="bg-zinc-950 p-3 border-t border-zinc-800">
-                            <a 
-                                href={`/album/${session.id}`} 
-                                target="_blank"
-                                className="flex items-center justify-center gap-2 text-sm text-blue-400 hover:text-blue-300"
-                            >
-                                <ExternalLink size={14} /> Buka Album Client
-                            </a>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {sessions.map((session) => (
+                <div key={session.id} className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-600 transition group">
+                    
+                    {/* Preview Image (Prioritas Final, kalau gak ada pake Raw) */}
+                    <div className="relative aspect-[2/3] bg-zinc-950">
+                        <img 
+                            src={session.finalUrl || session.rawUrl} 
+                            alt={session.id} 
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-xs font-mono border border-zinc-700">
+                            PIN: {session.pin}
                         </div>
                     </div>
-                ))
-            )}
+
+                    {/* Info Body */}
+                    <div className="p-4">
+                        <h3 className="font-bold text-lg mb-1">{session.id}</h3>
+                        <p className="text-zinc-500 text-xs mb-4">
+                            {new Date(session.date).toLocaleString()}
+                        </p>
+
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                            {session.finalUrl && (
+                                <a href={session.finalUrl} target="_blank" download className="bg-zinc-800 hover:bg-white hover:text-black py-2 rounded text-xs font-bold text-center flex items-center justify-center gap-1 transition">
+                                    <Download size={12}/> Final
+                                </a>
+                            )}
+                            {session.rawUrl && (
+                                <a href={session.rawUrl} target="_blank" download className="bg-zinc-800 hover:bg-zinc-700 py-2 rounded text-xs text-center flex items-center justify-center gap-1 transition text-zinc-300">
+                                    <ImageIcon size={12}/> Raw
+                                </a>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-center pt-3 border-t border-zinc-800">
+                            <a href={`/album/${session.id}`} target="_blank" className="text-blue-400 text-xs flex items-center gap-1 hover:underline">
+                                <ExternalLink size={12}/> Client View
+                            </a>
+                            <button 
+                                onClick={() => handleDelete(session.id)}
+                                className="text-red-500 text-xs flex items-center gap-1 hover:text-red-400"
+                            >
+                                <Trash2 size={12}/> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))}
         </div>
+        
+        {sessions.length === 0 && (
+            <div className="text-center py-20 text-zinc-600">
+                Belum ada foto yang diupload.
+            </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
