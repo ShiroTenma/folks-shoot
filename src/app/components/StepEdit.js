@@ -6,13 +6,21 @@ import { Check, ChevronLeft, ChevronRight, X, MousePointer2, Layers, Trash2, Ref
 const ITEMS_PER_PAGE = 10;
 
 export default function StepEdit({ 
-    layout, photos, frame, stickersList, 
+    layout, photos, frame, maxPhotos,
+    stickersList, 
     placedStickers, onAddSticker, onRemoveSticker, onUpdateSticker, onClearStickers,
     onFinish, onRestart, brightness, setBrightness, saturation, setSaturation 
 }) {
     const [activeStickerId, setActiveStickerId] = useState(null);
     const [page, setPage] = useState(0);
     const containerRef = useRef(null);
+    const padTopPct = frame?.id === 's8' ? 6 : 0;    // kecilkan top padding
+    const padBottomPct = frame?.id === 's8' ? 1 : 0; // tambah bottom padding biar konten naik
+    const padX = frame?.id === 's8' ? 6 : 0;  // kiri-kanan
+    const gapPct = frame?.id === 's8' ? 0 : 0;
+    const slotHeightPct = layout === 'single' 
+        ? 100 
+        : ((100 - padTopPct - padBottomPct - gapPct * (maxPhotos - 1)) / maxPhotos);
 
     // --- CAROUSEL LOGIC ---
     const totalPages = Math.ceil(stickersList.length / ITEMS_PER_PAGE);
@@ -110,8 +118,30 @@ export default function StepEdit({
                 }}
             >
                 {/* FOTO & FRAME */}
-                <div className="absolute inset-0 flex flex-col pointer-events-none" style={{ filter: `brightness(${brightness}) saturate(${saturation})` }}>
-                    {layout === 'single' ? <img src={photos[0]} className="w-full h-full object-cover" /> : photos.map((p, i) => <img key={i} src={p} className="w-full h-1/3 object-cover" />)}
+                <div 
+                    className="absolute inset-0 flex flex-col pointer-events-none" 
+                    style={{ 
+                        filter: `brightness(${brightness}) saturate(${saturation})`,
+                        paddingTop: `${padTopPct}%`,
+                        paddingBottom: `${padBottomPct}%`,
+                        paddingLeft: `${padX}%`,
+                        paddingRight: `${padX}%`,
+                        gap: `${gapPct}%`,
+                        boxSizing: 'border-box',
+                    }}
+                >
+                    {layout === 'single' ? (
+                      <img src={photos[0]} className="w-full h-full object-cover" />
+                    ) : (
+                      photos.map((p, i) => (
+                        <img 
+                          key={i} 
+                          src={p} 
+                          className="w-full" 
+                          style={{ height: `${slotHeightPct}%`, objectFit: 'cover' }} 
+                        />
+                      ))
+                    )}
                 </div>
                 {frame && <img src={frame.src} className="absolute inset-0 w-full h-full object-fill pointer-events-none z-10" />}
 

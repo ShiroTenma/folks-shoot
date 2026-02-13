@@ -8,7 +8,11 @@ export const processFinalImage = async ({
     // Strip: 600x1800 (Rasio 1:3)
     const width = layout === 'single' ? 1200 : 600;
     const height = 1800;
-    
+    const slots = layout === 'single' ? 1 : (frame?.id === 's8' ? 2 : 3);
+    const padX = layout === 'single' ? 0 : (frame?.id === 's8' ? 60 : 0); // px
+    const padTop = layout === 'single' ? 0 : (frame?.id === 's8' ? 70 : 0); // px
+    const padBottom = layout === 'single' ? 0 : (frame?.id === 's8' ? 190 : 0); // px
+
     // --- FUNGSI UTAMA MENGGAMBAR FOTO (BASE LAYER) ---
     const drawBaseLayer = async (ctx) => {
         // A. Background Putih
@@ -40,14 +44,14 @@ export const processFinalImage = async ({
         } 
         // --- LOGIKA STRIP SHOT (REVISI BIAR GAK STRETCH) ---
         else {
-            const slotHeight = height / 3; // Tinggi per kotak (1800 / 3 = 600px)
-            const slotWidth = width;       // Lebar kotak (600px)
+            const slotHeight = (height - padTop - padBottom) / slots; 
+            const slotWidth = width - padX * 2;       
 
             for (let i = 0; i < photos.length; i++) {
                 const img = await loadImg(photos[i]);
                 
                 // Koordinat Y awal untuk foto ke-i
-                const startY = i * slotHeight;
+                const startY = padTop + i * slotHeight;
 
                 // 1. Hitung Rasio Scaling (Pilih yang paling besar agar menutupi area)
                 const scale = Math.max(slotWidth / img.width, slotHeight / img.height);
@@ -58,7 +62,7 @@ export const processFinalImage = async ({
 
                 // 3. Hitung Posisi Tengah (Center Crop)
                 // (LebarSlot - LebarGambarBaru) / 2
-                const dx = (slotWidth - dWidth) / 2;
+                const dx = padX + (slotWidth - dWidth) / 2;
                 // (TinggiSlot - TinggiGambarBaru) / 2
                 const dy = (slotHeight - dHeight) / 2;
 
@@ -67,7 +71,7 @@ export const processFinalImage = async ({
                 
                 // Bikin area potong (hanya boleh gambar di kotak ini)
                 ctx.beginPath();
-                ctx.rect(0, startY, slotWidth, slotHeight);
+                ctx.rect(padX, startY, slotWidth, slotHeight);
                 ctx.clip();
 
                 // Gambar Foto (perhatikan offset Y ditambah startY)

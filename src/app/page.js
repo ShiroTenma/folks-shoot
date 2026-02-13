@@ -7,6 +7,12 @@ import StepEdit from './components/StepEdit';
 import StepResult from './components/StepResult';
 import { processFinalImage } from './utils/canvasGenerator';
 
+const getMaxPhotos = (layout, frame) => {
+  if (layout === 'single') return 1;
+  if (frame?.id === 's8') return 2; // strip8 hanya 2 slot
+  return 3;
+};
+
 const ASSETS = {
   frames: {
     single: [
@@ -81,13 +87,13 @@ export default function FolkshootPage() {
   };
 
   const handleCapture = useCallback(() => {
+    const maxPhotos = getMaxPhotos(layout, selectedFrame);
     const imageSrc = webcamRef.current.getScreenshot({width: 1920, height: 1080});
     if (!imageSrc) return;
     const newPhotos = [...photos, imageSrc];
     setPhotos(newPhotos);
-    const maxPhotos = layout === 'single' ? 1 : 3;
     if (newPhotos.length >= maxPhotos) setTimeout(() => setStep('edit'), 500); 
-  }, [webcamRef, photos, layout]);
+  }, [webcamRef, photos, layout, selectedFrame]);
 
   const handleAddSticker = (src) => setPlacedStickers([...placedStickers, { id: Date.now(), src, x: 50, y: 50, scale: 1, rotation: 0 }]);
   const handleUpdateSticker = (id, newAttr) => setPlacedStickers(prev => prev.map(s => s.id === id ? { ...s, ...newAttr } : s));
@@ -120,8 +126,8 @@ export default function FolkshootPage() {
     <main className="font-sans text-black selection:bg-black selection:text-white bg-white min-h-screen">
         {step === 'home' && <StepHome onStart={handleStartSelection} />}
         {step === 'select' && <StepSelection layout={layout} setLayout={setLayout} selectedFrame={selectedFrame} setSelectedFrame={setSelectedFrame} assets={ASSETS} onBack={goHome} onNext={handleConfirmSelection} />}
-        {step === 'camera' && <StepCamera webcamRef={webcamRef} layout={layout} photosCount={photos.length} onCapture={handleCapture} previewOverlay={layout === 'single' ? '/frames/preview-single.png' : '/frames/preview-strip.png'} />}
-        {step === 'edit' && <StepEdit layout={layout} photos={photos} frame={selectedFrame} stickersList={ASSETS.stickers} placedStickers={placedStickers} onAddSticker={handleAddSticker} onRemoveSticker={handleRemoveSticker} onUpdateSticker={handleUpdateSticker} onClearStickers={handleClearStickers} onFinish={handleFinish} onRestart={goHome} brightness={brightness} setBrightness={setBrightness} saturation={saturation} setSaturation={setSaturation} />}
+        {step === 'camera' && <StepCamera webcamRef={webcamRef} layout={layout} photosCount={photos.length} maxPhotos={getMaxPhotos(layout, selectedFrame)} onCapture={handleCapture} previewOverlay={layout === 'single' ? '/frames/preview-single.png' : '/frames/preview-strip.png'} />}
+        {step === 'edit' && <StepEdit layout={layout} photos={photos} frame={selectedFrame} maxPhotos={getMaxPhotos(layout, selectedFrame)} stickersList={ASSETS.stickers} placedStickers={placedStickers} onAddSticker={handleAddSticker} onRemoveSticker={handleRemoveSticker} onUpdateSticker={handleUpdateSticker} onClearStickers={handleClearStickers} onFinish={handleFinish} onRestart={goHome} brightness={brightness} setBrightness={setBrightness} saturation={saturation} setSaturation={setSaturation} />}
         {(step === 'uploading' || step === 'result') && <StepResult isUploading={step === 'uploading'} finalImage={finalImage} resultUrl={resultUrl} pin={pin} onHome={goHome} />}
     </main>
   );

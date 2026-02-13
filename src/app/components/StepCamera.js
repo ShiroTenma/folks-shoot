@@ -6,6 +6,7 @@ export default function StepCamera({
   webcamRef,       
   layout,          
   photosCount,     
+  maxPhotos,
   onCapture,       
   previewOverlay     
 }) {
@@ -70,7 +71,7 @@ export default function StepCamera({
             {/* LABEL FOTO KE-BERAPA (Mode Strip) */}
             <div className="absolute top-4 left-0 w-full text-center pointer-events-none z-20">
                 <span className="bg-black/60 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10 shadow-sm">
-                    {layout === 'single' ? 'Single Shot' : `Photo ${photosCount + 1} / 3`}
+                    {layout === 'single' ? 'Single Shot' : `Photo ${Math.min(photosCount + 1, maxPhotos)} / ${maxPhotos}`}
                 </span>
             </div>
 
