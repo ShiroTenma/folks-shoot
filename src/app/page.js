@@ -10,15 +10,40 @@ import { processFinalImage } from './utils/canvasGenerator';
 const ASSETS = {
   frames: {
     single: [
-      { id: 'f1', name: 'Simple White', src: '/frames/frame1.png' }, 
-      { id: 'f2', name: 'Cool Black', src: '/frames/frame2.png' },
+      { id: 'f1', name: 'Cream Minimal', src: '/frames/single1.png' }, 
+      { id: 'f2', name: 'Midnight Bold', src: '/frames/single2.png' },
     ],
     strip: [
       { id: 's1', name: 'Classic Strip', src: '/frames/strip1.png' }, 
+      { id: 's2', name: 'Mono Noir', src: '/frames/strip2.png' }, 
+      { id: 's3', name: 'Soft Grey', src: '/frames/strip3.png' }, 
+      { id: 's4', name: 'Electric Blue', src: '/frames/strip4.png' }, 
+      { id: 's5', name: 'Sunrise Amber', src: '/frames/strip5.png' }, 
+      { id: 's6', name: 'Leafy Green', src: '/frames/strip6.png' }, 
+      { id: 's7', name: 'Crimson Pop', src: '/frames/strip7.png' }, 
+      { id: 's8', name: 'Aqua Glow', src: '/frames/strip8.png' }, 
+      { id: 's9', name: 'Violet Haze', src: '/frames/strip9.png' }, 
     ]
   },
   stickers: [
-    '/stickers/s1.png', '/stickers/s2.png', '/stickers/s3.png', '/stickers/logo.png',
+    '/stickers/Alert_.png',
+    '/stickers/Angy.png',
+    '/stickers/Crown.png',
+    '/stickers/Daun.png',
+    '/stickers/Emot%20jujur%20engga%20tau.png',
+    '/stickers/Hi!.png',
+    '/stickers/Kacamata_.png',
+    '/stickers/Kemonomimi.png',
+    '/stickers/Lope.png',
+    '/stickers/Lope%5E2.png',
+    '/stickers/Nekomimi.png',
+    '/stickers/OH.png',
+    '/stickers/Pita.png',
+    '/stickers/Wow!!.png',
+    '/stickers/%E3%81%8B%E3%82%8F%E3%81%84%E3%81%84_.png',
+    '/stickers/StarBurst.png',
+    '/stickers/SparkleMint.png',
+    '/stickers/SpeechBubble.png',
   ]
 };
 
@@ -95,8 +120,8 @@ export default function FolkshootPage() {
     <main className="font-sans text-black selection:bg-black selection:text-white bg-white min-h-screen">
         {step === 'home' && <StepHome onStart={handleStartSelection} />}
         {step === 'select' && <StepSelection layout={layout} setLayout={setLayout} selectedFrame={selectedFrame} setSelectedFrame={setSelectedFrame} assets={ASSETS} onBack={goHome} onNext={handleConfirmSelection} />}
-        {step === 'camera' && <StepCamera webcamRef={webcamRef} layout={layout} photosCount={photos.length} onCapture={handleCapture} frameOverlay={selectedFrame?.src} />}
-        {step === 'edit' && <StepEdit layout={layout} photos={photos} frame={selectedFrame} stickersList={ASSETS.stickers} placedStickers={placedStickers} onAddSticker={handleAddSticker} onRemoveSticker={handleRemoveSticker} onUpdateSticker={handleUpdateSticker} onClearStickers={handleClearStickers} onFinish={handleFinish} brightness={brightness} setBrightness={setBrightness} saturation={saturation} setSaturation={setSaturation} />}
+        {step === 'camera' && <StepCamera webcamRef={webcamRef} layout={layout} photosCount={photos.length} onCapture={handleCapture} previewOverlay={layout === 'single' ? '/frames/preview-single.png' : '/frames/preview-strip.png'} />}
+        {step === 'edit' && <StepEdit layout={layout} photos={photos} frame={selectedFrame} stickersList={ASSETS.stickers} placedStickers={placedStickers} onAddSticker={handleAddSticker} onRemoveSticker={handleRemoveSticker} onUpdateSticker={handleUpdateSticker} onClearStickers={handleClearStickers} onFinish={handleFinish} onRestart={goHome} brightness={brightness} setBrightness={setBrightness} saturation={saturation} setSaturation={setSaturation} />}
         {(step === 'uploading' || step === 'result') && <StepResult isUploading={step === 'uploading'} finalImage={finalImage} resultUrl={resultUrl} pin={pin} onHome={goHome} />}
     </main>
   );

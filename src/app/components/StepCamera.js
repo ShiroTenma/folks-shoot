@@ -1,5 +1,5 @@
 // src/app/components/StepCamera.jsx
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 
 export default function StepCamera({ 
@@ -7,8 +7,13 @@ export default function StepCamera({
   layout,          
   photosCount,     
   onCapture,       
-  frameOverlay     
+  previewOverlay     
 }) {
+
+  // Countdown state
+  const COUNTDOWN_SECONDS = 3;
+  const [countdown, setCountdown] = useState(null); // null = idle, number = ticking
+  const timerRef = useRef(null);
 
   // KONFIGURASI KAMERA
   // Kita minta resolusi tinggi, tapi biarkan CSS yang ngatur tampilannya
@@ -17,6 +22,24 @@ export default function StepCamera({
     width: { ideal: 1920 }, // Minta resolusi tinggi
     height: { ideal: 1080 }
   };
+
+  // Mulai hitung mundur
+  const startCountdown = () => {
+    if (countdown !== null) return; // lagi jalan
+    setCountdown(COUNTDOWN_SECONDS);
+  };
+
+  // Tick countdown
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      setCountdown(null);
+      onCapture();
+      return;
+    }
+    timerRef.current = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
+    return () => clearTimeout(timerRef.current);
+  }, [countdown, onCapture]);
 
   return (
     // Wrapper luar: Hitam penuh, tidak bisa scroll
@@ -51,12 +74,12 @@ export default function StepCamera({
                 </span>
             </div>
 
-            {/* FRAME OVERLAY (PNG) */}
-            {frameOverlay && (
+            {/* PREVIEW OVERLAY (tidak ikut frame pilihan) */}
+            {previewOverlay && (
                 <img 
-                    src={frameOverlay} 
-                    className="absolute inset-0 w-full h-full object-fill opacity-60 pointer-events-none z-30" 
-                    alt="Frame Overlay"
+                    src={previewOverlay} 
+                    className="absolute inset-0 w-full h-full object-fill opacity-70 pointer-events-none z-30" 
+                    alt="Preview Overlay"
                 />
             )}
 
@@ -67,18 +90,28 @@ export default function StepCamera({
                 <div className="h-full w-1/3 border-r border-white/50 absolute left-0"></div>
                 <div className="h-full w-1/3 border-r border-white/50 absolute left-1/3"></div>
             </div>
+
+            {/* COUNTDOWN OVERLAY */}
+            {countdown !== null && (
+              <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/20 backdrop-blur-sm">
+                <span className="text-white text-7xl font-black drop-shadow-lg">
+                  {countdown === 0 ? '📸' : countdown}
+                </span>
+              </div>
+            )}
         </div>
 
         {/* TOMBOL JEPRET */}
         <div className="absolute bottom-8 left-0 w-full flex flex-col items-center gap-3 z-40">
             <button 
-                onClick={onCapture} 
-                className="group relative w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all active:scale-90 hover:border-yellow-400 hover:shadow-[0_0_25px_rgba(255,215,0,0.6)]"
+                onClick={startCountdown} 
+                disabled={countdown !== null}
+                className="group relative w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all active:scale-90 hover:border-yellow-400 hover:shadow-[0_0_25px_rgba(255,215,0,0.6)] disabled:opacity-50"
             >
                 <div className="w-16 h-16 bg-white rounded-full group-hover:bg-zinc-200 transition-colors"></div>
             </button>
             <p className="text-zinc-400 text-[10px] uppercase tracking-[0.2em] font-medium animate-pulse">
-                Tap Shutter
+                {countdown !== null ? 'Get Ready...' : 'Tap Shutter'}
             </p>
         </div>
     </div>

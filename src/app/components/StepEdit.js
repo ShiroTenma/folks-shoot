@@ -2,12 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronLeft, ChevronRight, X, MousePointer2, Layers, Trash2, RefreshCcw } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 5;
+// Tampilkan lebih banyak stiker sekaligus (dari 5 -> 10)
+const ITEMS_PER_PAGE = 10;
 
 export default function StepEdit({ 
     layout, photos, frame, stickersList, 
     placedStickers, onAddSticker, onRemoveSticker, onUpdateSticker, onClearStickers,
-    onFinish, brightness, setBrightness, saturation, setSaturation 
+    onFinish, onRestart, brightness, setBrightness, saturation, setSaturation 
 }) {
     const [activeStickerId, setActiveStickerId] = useState(null);
     const [page, setPage] = useState(0);
@@ -199,8 +200,11 @@ export default function StepEdit({
                     </div>
 
                     {/* 4. FINISH BUTTON */}
-                    <button onClick={onFinish} className="w-full py-3 bg-black text-white rounded-full font-bold shadow-lg hover:scale-[1.01] transition flex items-center justify-center gap-2">
+                    <button onClick={onFinish} className="w-full py-3 bg-black text-white rounded-full font-bold shadow-lg hover:scale-[1.01] transition flex items-center justify-center gap-2 mb-3">
                         FINISH <Check size={18} />
+                    </button>
+                    <button onClick={onRestart} className="w-full py-3 bg-white text-black rounded-full font-bold border border-zinc-200 hover:bg-zinc-100 transition flex items-center justify-center gap-2">
+                        Ulang Sesi
                     </button>
                 </div>
             </div>
