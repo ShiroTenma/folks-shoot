@@ -107,10 +107,11 @@ export default function FolkshootPage() {
             layout, photos, frame: selectedFrame, stickers: placedStickers, brightness, saturation
         });
         setFinalImage(finalBase64); 
+        const imageRawParts = layout === 'strip' ? photos : [];
         const res = await fetch('/api/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageFinal: finalBase64, imageRaw: rawBase64, sessionId, pin }),
+            body: JSON.stringify({ imageFinal: finalBase64, imageRaw: rawBase64, imageRawParts, sessionId, pin }),
         });
         if (res.ok) {
             const baseUrl = window.location.origin;
