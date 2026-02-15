@@ -1,12 +1,13 @@
 // src/app/components/StepEdit.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronLeft, ChevronRight, X, MousePointer2, Layers, Trash2, RefreshCcw } from 'lucide-react';
+import { getFrameLayoutConfig } from '../utils/frameLayoutConfig';
 
 // Tampilkan lebih banyak stiker sekaligus (dari 5 -> 10)
 const ITEMS_PER_PAGE = 10;
 
 export default function StepEdit({ 
-    layout, photos, frame, maxPhotos,
+    layout, photos, frame,
     stickersList, 
     placedStickers, onAddSticker, onRemoveSticker, onUpdateSticker, onClearStickers,
     onFinish, onRestart, brightness, setBrightness, saturation, setSaturation 
@@ -14,10 +15,14 @@ export default function StepEdit({
     const [activeStickerId, setActiveStickerId] = useState(null);
     const [page, setPage] = useState(0);
     const containerRef = useRef(null);
-    const padTopPct = frame?.id === 's8' ? 6 : 0;    // kecilkan top padding
-    const padBottomPct = frame?.id === 's8' ? 1 : 0; // tambah bottom padding biar konten naik
-    const padX = frame?.id === 's8' ? 6 : 0;  // kiri-kanan
-    const gapPct = frame?.id === 's8' ? 0 : 0;
+    const frameLayoutConfig = getFrameLayoutConfig(layout, frame?.id);
+    const { maxPhotos, preview } = frameLayoutConfig;
+    const padTopPct = preview.padTopPct;
+    const padBottomPct = preview.padBottomPct;
+    const padX = preview.padXPct;
+    const gapPct = preview.gapPct;
+    const moveXPct = preview.moveXPct;
+    const moveYPct = preview.moveYPct;
     const slotHeightPct = layout === 'single' 
         ? 100 
         : ((100 - padTopPct - padBottomPct - gapPct * (maxPhotos - 1)) / maxPhotos);
@@ -134,12 +139,17 @@ export default function StepEdit({
                       <img src={photos[0]} className="w-full h-full object-cover" />
                     ) : (
                       photos.map((p, i) => (
-                        <img 
-                          key={i} 
-                          src={p} 
-                          className="w-full" 
-                          style={{ height: `${slotHeightPct}%`, objectFit: 'cover' }} 
-                        />
+                        <div
+                          key={i}
+                          className="w-full overflow-hidden"
+                          style={{ height: `${slotHeightPct}%` }}
+                        >
+                          <img 
+                            src={p} 
+                            className="w-full h-full object-cover"
+                            style={{ objectPosition: `${50 + moveXPct}% ${50 + moveYPct}%` }}
+                          />
+                        </div>
                       ))
                     )}
                 </div>

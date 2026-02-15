@@ -1,5 +1,7 @@
 // src/app/utils/canvasGenerator.js
 
+import { getFrameLayoutConfig } from './frameLayoutConfig';
+
 export const processFinalImage = async ({ 
     layout, photos, frame, stickers, brightness, saturation 
 }) => {
@@ -8,10 +10,13 @@ export const processFinalImage = async ({
     // Strip: 600x1800 (Rasio 1:3)
     const width = layout === 'single' ? 1200 : 600;
     const height = 1800;
-    const slots = layout === 'single' ? 1 : (frame?.id === 's8' ? 2 : 3);
-    const padX = layout === 'single' ? 0 : (frame?.id === 's8' ? 60 : 0); // px
-    const padTop = layout === 'single' ? 0 : (frame?.id === 's8' ? 70 : 0); // px
-    const padBottom = layout === 'single' ? 0 : (frame?.id === 's8' ? 190 : 0); // px
+    const frameLayoutConfig = getFrameLayoutConfig(layout, frame?.id);
+    const slots = frameLayoutConfig.maxPhotos;
+    const padX = frameLayoutConfig.canvas.padXPx;
+    const padTop = frameLayoutConfig.canvas.padTopPx;
+    const padBottom = frameLayoutConfig.canvas.padBottomPx;
+    const moveX = frameLayoutConfig.canvas.moveXPx;
+    const moveY = frameLayoutConfig.canvas.moveYPx;
 
     // --- FUNGSI UTAMA MENGGAMBAR FOTO (BASE LAYER) ---
     const drawBaseLayer = async (ctx) => {
@@ -62,9 +67,9 @@ export const processFinalImage = async ({
 
                 // 3. Hitung Posisi Tengah (Center Crop)
                 // (LebarSlot - LebarGambarBaru) / 2
-                const dx = padX + (slotWidth - dWidth) / 2;
+                const dx = padX + (slotWidth - dWidth) / 2 + moveX;
                 // (TinggiSlot - TinggiGambarBaru) / 2
-                const dy = (slotHeight - dHeight) / 2;
+                const dy = (slotHeight - dHeight) / 2 + moveY;
 
                 // 4. Gambar dengan Clipping (Agar tidak bocor ke kotak lain)
                 ctx.save(); // Simpan state canvas

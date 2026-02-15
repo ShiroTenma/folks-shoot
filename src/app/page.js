@@ -6,12 +6,7 @@ import StepCamera from './components/StepCamera';
 import StepEdit from './components/StepEdit';
 import StepResult from './components/StepResult';
 import { processFinalImage } from './utils/canvasGenerator';
-
-const getMaxPhotos = (layout, frame) => {
-  if (layout === 'single') return 1;
-  if (frame?.id === 's8') return 2; // strip8 hanya 2 slot
-  return 3;
-};
+import { getFrameLayoutConfig } from './utils/frameLayoutConfig';
 
 const ASSETS = {
   frames: {
@@ -87,8 +82,9 @@ export default function FolkshootPage() {
   };
 
   const handleCapture = useCallback(() => {
-    const maxPhotos = getMaxPhotos(layout, selectedFrame);
-    const imageSrc = webcamRef.current.getScreenshot({width: 1920, height: 1080});
+    const maxPhotos = getFrameLayoutConfig(layout, selectedFrame?.id).maxPhotos;
+    // Jangan paksa ukuran screenshot agar rasio kamera asli tetap terjaga.
+    const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
     const newPhotos = [...photos, imageSrc];
     setPhotos(newPhotos);
@@ -108,10 +104,11 @@ export default function FolkshootPage() {
         });
         setFinalImage(finalBase64); 
         const imageRawParts = layout === 'strip' ? photos : [];
+        const imageRawToUpload = layout === 'single' ? rawBase64 : null;
         const res = await fetch('/api/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageFinal: finalBase64, imageRaw: rawBase64, imageRawParts, sessionId, pin }),
+            body: JSON.stringify({ imageFinal: finalBase64, imageRaw: imageRawToUpload, imageRawParts, sessionId, pin }),
         });
         if (res.ok) {
             const baseUrl = window.location.origin;
@@ -123,13 +120,15 @@ export default function FolkshootPage() {
     } catch (e) { alert("Error koneksi."); setStep('edit'); }
   };
 
+  const frameLayoutConfig = getFrameLayoutConfig(layout, selectedFrame?.id);
+
   return (
     <main className="font-sans text-black selection:bg-black selection:text-white bg-white min-h-screen">
         {step === 'home' && <StepHome onStart={handleStartSelection} />}
         {step === 'select' && <StepSelection layout={layout} setLayout={setLayout} selectedFrame={selectedFrame} setSelectedFrame={setSelectedFrame} assets={ASSETS} onBack={goHome} onNext={handleConfirmSelection} />}
-        {step === 'camera' && <StepCamera webcamRef={webcamRef} layout={layout} photosCount={photos.length} maxPhotos={getMaxPhotos(layout, selectedFrame)} onCapture={handleCapture} previewOverlay={layout === 'single' ? '/frames/preview-single.png' : '/frames/preview-strip.png'} />}
-        {step === 'edit' && <StepEdit layout={layout} photos={photos} frame={selectedFrame} maxPhotos={getMaxPhotos(layout, selectedFrame)} stickersList={ASSETS.stickers} placedStickers={placedStickers} onAddSticker={handleAddSticker} onRemoveSticker={handleRemoveSticker} onUpdateSticker={handleUpdateSticker} onClearStickers={handleClearStickers} onFinish={handleFinish} onRestart={goHome} brightness={brightness} setBrightness={setBrightness} saturation={saturation} setSaturation={setSaturation} />}
-        {(step === 'uploading' || step === 'result') && <StepResult isUploading={step === 'uploading'} finalImage={finalImage} resultUrl={resultUrl} pin={pin} onHome={goHome} />}
+        {step === 'camera' && <StepCamera webcamRef={webcamRef} layout={layout} photosCount={photos.length} maxPhotos={frameLayoutConfig.maxPhotos} onCapture={handleCapture} previewOverlay={layout === 'single' ? '/frames/preview-single.png' : null} />}
+        {step === 'edit' && <StepEdit layout={layout} photos={photos} frame={selectedFrame} stickersList={ASSETS.stickers} placedStickers={placedStickers} onAddSticker={handleAddSticker} onRemoveSticker={handleRemoveSticker} onUpdateSticker={handleUpdateSticker} onClearStickers={handleClearStickers} onFinish={handleFinish} onRestart={goHome} brightness={brightness} setBrightness={setBrightness} saturation={saturation} setSaturation={setSaturation} />}
+        {(step === 'uploading' || step === 'result') && <StepResult isUploading={step === 'uploading'} finalImage={finalImage} resultUrl={resultUrl} pin={pin} layout={layout} onHome={goHome} />}
     </main>
   );
 }
